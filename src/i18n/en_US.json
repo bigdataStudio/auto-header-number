@@ -10,5 +10,8 @@
   "removedData": "Data deleted",
   "confirmRemove": "Confirm to delete the data in ${name}?",
   "insertEmoji": "Insert Emoji",
-  "removeSpace": "Remove Space"
+  "removeSpace": "Remove Space",
+  "autoHeaderNumber": "Auto Header Number",
+  "enableAutoHeaderNumber": "Enable Auto Header Number",
+  "disableAutoHeaderNumber": "Disable Auto Header Number"
 }

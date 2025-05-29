@@ -27,11 +27,11 @@ const STORAGE_NAME = "menu-config";
 const TAB_TYPE = "custom_tab";
 const DOCK_TYPE = "dock_tab";
 
-export default class PluginSample extends Plugin {
-
+export default class AutoHeaderNumberPlugin extends Plugin {
     private custom: () => Custom;
     private isMobile: boolean;
     private blockIconEventBindThis = this.blockIconEvent.bind(this);
+    private enabled: boolean = false;
 
     updateProtyleToolbar(toolbar: Array<string | IMenuItem>) {
         toolbar.push("|");
@@ -59,6 +59,10 @@ export default class PluginSample extends Plugin {
 </symbol>
 <symbol id="iconSaving" viewBox="0 0 32 32">
 <path d="M20 13.333c0-0.733 0.6-1.333 1.333-1.333s1.333 0.6 1.333 1.333c0 0.733-0.6 1.333-1.333 1.333s-1.333-0.6-1.333-1.333zM10.667 12h6.667v-2.667h-6.667v2.667zM29.333 10v9.293l-3.76 1.253-2.24 7.453h-7.333v-2.667h-2.667v2.667h-7.333c0 0-3.333-11.28-3.333-15.333s3.28-7.333 7.333-7.333h6.667c1.213-1.613 3.147-2.667 5.333-2.667 1.107 0 2 0.893 2 2 0 0.28-0.053 0.533-0.16 0.773-0.187 0.453-0.347 0.973-0.427 1.533l3.027 3.027h2.893zM26.667 12.667h-1.333l-4.667-4.667c0-0.867 0.12-1.72 0.347-2.547-1.293 0.333-2.347 1.293-2.787 2.547h-8.227c-2.573 0-4.667 2.093-4.667 4.667 0 2.507 1.627 8.867 2.68 12.667h2.653v-2.667h8v2.667h2.68l2.067-6.867 3.253-1.093v-4.707z"></path>
+</symbol>
+<symbol id="iconNumber" viewBox="0 0 32 32">
+<path d="M16 3.333c-7.333 0-13.333 6-13.333 13.333s6 13.333 13.333 13.333 13.333-6 13.333-13.333-6-13.333-13.333-13.333zM16 26.667c-5.513 0-10-4.487-10-10s4.487-10 10-10 10 4.487 10 10-4.487 10-10 10z"></path>
+<path d="M17.333 9.333h-2.667v8l7 4.667 1.333-2.667-5.667-3.333z"></path>
 </symbol>`);
 
         const topBarElement = this.addTopBar({
@@ -238,6 +242,43 @@ export default class PluginSample extends Plugin {
         };
 
         console.log(this.i18n.helloPlugin);
+
+        // 添加顶部图标和菜单
+        const numberIconElement = this.addTopBar({
+            icon: "iconNumber",
+            title: "标题编号",
+            position: "right",
+            callback: (event: MouseEvent) => {
+                const targetElement = event.target as HTMLElement;
+                const rect = targetElement.getBoundingClientRect();
+                
+                const menu = new Menu("headerNumberMenu");
+                menu.addItem({
+                    icon: "iconRefresh",
+                    label: "为当前文档添加编号",
+                    click: async () => {
+                        await this.addHeaderNumbers();
+                    }
+                });
+                menu.addItem({
+                    icon: "iconTrashcan",
+                    label: "清除当前文档编号",
+                    click: async () => {
+                        await this.clearHeaderNumbers();
+                    }
+                });
+
+                // 显示菜单
+                menu.open({
+                    x: rect.right,
+                    y: rect.bottom,
+                    isLeft: true,
+                });
+            }
+        });
+
+        // 移除自动监听
+        // this.eventBus.on("loaded-protyle-static", this.handleLoadedProtyleStatic);
     }
 
     onLayoutReady() {
@@ -247,6 +288,7 @@ export default class PluginSample extends Plugin {
 
     onunload() {
         console.log(this.i18n.byePlugin);
+        // this.eventBus.off("loaded-protyle-static", this.handleLoadedProtyleStatic);
     }
 
     uninstall() {
@@ -865,5 +907,203 @@ export default class PluginSample extends Plugin {
             return;
         }
         return editors[0];
+    }
+
+    /**
+     * 为当前文档添加标题编号
+     */
+    private async addHeaderNumbers() {
+        try {
+            // 查找当前文档中的编辑区域
+            const protyles = document.querySelectorAll(".protyle-wysiwyg[contenteditable='true']");
+            console.log('Found protyle elements:', protyles.length);
+            
+            if (protyles.length > 0) {
+                // 处理每个编辑区域中的标题
+                for (const protyle of protyles) {
+                    await this.processHeaders(protyle);
+                }
+                showMessage("已添加标题编号");
+            } else {
+                console.error('No protyle elements found');
+                showMessage("未找到可编号的文档，请先打开一篇文档");
+            }
+        } catch (error) {
+            console.error('Error in addHeaderNumbers:', error);
+            showMessage("添加编号过程中出现错误，请查看控制台");
+        }
+    }
+
+    /**
+     * 清除当前文档的所有标题编号
+     */
+    private async clearHeaderNumbers() {
+        try {
+            const protyles = document.querySelectorAll(".protyle-wysiwyg[contenteditable='true']");
+            if (protyles.length > 0) {
+                for (const protyle of protyles) {
+                    const headers = protyle.querySelectorAll('[data-type="NodeHeading"]');
+                    for (const header of headers) {
+                        const contentElement = header.querySelector('[contenteditable="true"]');
+                        if (!contentElement) continue;
+
+                        const blockId = header.getAttribute("data-node-id");
+                        if (!blockId) continue;
+
+                        let titleText = contentElement.textContent || "";
+                        // 去除已有编号
+                        const newText = titleText.replace(/^([一二三四五六七八九十]+、|\d+(\.\d+)*\s*)/, "");
+                        
+                        if (titleText !== newText) {
+                            const level = parseInt(header.getAttribute('data-subtype').replace('h', ''));
+                            const hashes = '#'.repeat(level);
+                            await fetchPost("/api/block/updateBlock", {
+                                id: blockId,
+                                data: `${hashes} ${newText}`,
+                                dataType: "markdown"
+                            });
+                        }
+                    }
+                }
+                showMessage("已清除标题编号");
+            } else {
+                showMessage("未找到可处理的文档，请先打开一篇文档");
+            }
+        } catch (error) {
+            console.error('Error in clearHeaderNumbers:', error);
+            showMessage("清除编号过程中出现错误，请查看控制台");
+        }
+    }
+
+    /**
+     * 处理编辑区域中的标题
+     * @param protyle 编辑区域元素
+     */
+    private async processHeaders(protyle: any) {
+        console.log('processHeaders called, protyle:', protyle);
+        
+        // 查找编辑区域中的可编辑内容区
+        const wysiwyg = protyle.querySelector('.protyle-wysiwyg');
+        console.log('wysiwyg element:', wysiwyg);
+        
+        if (!wysiwyg) {
+            console.error('Cannot find .protyle-wysiwyg element');
+            // 如果在传入的 protyle 中找不到，尝试直接从文档中获取
+            const allWysiwyg = document.querySelector('.protyle-wysiwyg');
+            if (allWysiwyg) {
+                console.log('Found wysiwyg in document directly');
+                // 查找所有标题元素
+                const headers = allWysiwyg.querySelectorAll('[data-type="NodeHeading"]');
+                console.log('Found headers:', headers.length);
+                await this.processHeaderElements(headers);
+                return;
+            }
+            return;
+        }
+        
+        // 查找所有标题元素
+        const headers = wysiwyg.querySelectorAll('[data-type="NodeHeading"]');
+        console.log('Found headers:', headers.length);
+        await this.processHeaderElements(headers);
+    }
+
+    /**
+     * 处理标题元素集合，为每个标题添加适当的编号
+     * @param headers 标题元素集合
+     */
+    private async processHeaderElements(headers: NodeListOf<Element>) {
+        // 用于跟踪各级标题的计数（支持6级标题）
+        const counters = [0, 0, 0, 0, 0, 0];
+        // 一级标题使用的中文数字
+        const chineseNumbers = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+        
+        // 遍历处理每个标题
+        for (const header of headers) {
+            console.log('Processing header:', header);
+            
+            // 获取标题的级别信息（h1-h6）
+            const subtype = header.getAttribute('data-subtype');
+            console.log('Header subtype:', subtype);
+            
+            // 验证标题类型的有效性
+            if (!subtype || !subtype.startsWith('h')) {
+                console.error('Invalid header subtype:', subtype);
+                continue;
+            }
+            
+            // 解析标题级别（h1-h6 转换为 0-5）
+            const level = parseInt(subtype.replace('h', '')) - 1;
+            counters[level]++;
+            
+            // 重置所有下级标题的计数
+            // 例如：当出现新的二级标题时，需要重置三、四、五、六级标题的计数
+            for (let i = level + 1; i < counters.length; i++) counters[i] = 0;
+            
+            // 生成标题编号
+            let number = "";
+            if (level === 0) {
+                // 一级标题使用中文数字（如：一、二、三）
+                number = chineseNumbers[counters[0] - 1] + "、";
+            } else {
+                // 其他级别使用数字编号（如：1.1、1.1.1）
+                for (let i = 0; i <= level; i++) {
+                    if (i > 0) number += ".";
+                    number += counters[i];
+                }
+                // 二级及以下标题的编号后添加空格
+                number += " ";
+            }
+            
+            // 获取标题块的唯一ID
+            const blockId = header.getAttribute("data-node-id");
+            console.log('Block ID:', blockId);
+            
+            if (!blockId) {
+                console.error('No block ID found for header');
+                continue;
+            }
+            
+            // 获取标题的可编辑元素
+            const contentElement = header.querySelector('[contenteditable="true"]');
+            if (!contentElement) {
+                console.error('No content element found for header');
+                continue;
+            }
+            
+            // 获取标题文本
+            let titleText = contentElement.textContent || "";
+            console.log('Original title:', titleText);
+            
+            // 去除已有的编号（如果存在）
+            titleText = titleText.replace(/^([一二三四五六七八九十]+、|\d+(\.\d+)* )/, "");
+            
+            // 使用 Markdown 格式构建新的标题内容
+            const hashes = '#'.repeat(level + 1);  // 生成对应数量的 # 号
+            const newText = `${hashes} ${number}${titleText}`;
+            console.log('New title:', newText);
+            
+            // 只在内容发生变化时更新
+            if (contentElement.textContent !== `${number}${titleText}`) {
+                try {
+                    console.log('Updating block with new content:', {
+                        id: blockId,
+                        data: newText
+                    });
+                    
+                    // 调用思源笔记的 API 更新块内容
+                    await fetchPost("/api/block/updateBlock", {
+                        id: blockId,
+                        data: newText,
+                        dataType: "markdown"  // 指定内容类型为 markdown
+                    });
+                    
+                    console.log('Block updated successfully');
+                } catch (error) {
+                    console.error('Failed to update header:', error);
+                }
+            } else {
+                console.log('No update needed, content unchanged');
+            }
+        }
     }
 }

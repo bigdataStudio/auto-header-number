@@ -1,32 +1,24 @@
 {
-  "name": "plugin-sample",
-  "author": "Vanessa",
-  "url": "https://github.com/siyuan-note/plugin-sample",
-  "version": "0.4.0",
-  "minAppVersion": "3.1.27",
+  "name": "auto-header-number",
+  "author": "wangxiaoyu",
+  "url": "https://github.com/wangxiaoyu/auto-header-number",
+  "version": "0.1.0",
+  "minAppVersion": "2.8.8",
   "backends": [
     "windows",
     "linux",
-    "darwin",
-    "ios",
-    "android",
-    "harmony",
-    "docker"
+    "darwin"
   ],
   "frontends": [
-    "desktop",
-    "mobile",
-    "browser-desktop",
-    "browser-mobile",
-    "desktop-window"
+    "desktop"
   ],
   "displayName": {
-    "default": "Plugin Sample",
-    "zh_CN": "插件示例"
+    "default": "Auto Header Number",
+    "zh_CN": "标题自动编号"
   },
   "description": {
-    "default": "This is a plugin sample",
-    "zh_CN": "这是一个插件示例"
+    "default": "Automatically number headers in your documents",
+    "zh_CN": "为文档中的标题自动添加编号"
   },
   "readme": {
     "default": "README.md",
@@ -36,12 +28,9 @@
     "openCollective": "",
     "patreon": "",
     "github": "",
-    "custom": [
-      "https://ld246.com/sponsor"
-    ]
+    "custom": []
   },
   "keywords": [
-    "sample",
-    "示例"
+    "header", "number", "标题", "编号"
   ]
 }

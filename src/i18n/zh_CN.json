@@ -10,5 +10,8 @@
   "removedData": "数据已删除",
   "confirmRemove": "确认删除 ${name} 中的数据？",
   "insertEmoji": "插入表情",
-  "removeSpace": "移除空格"
+  "removeSpace": "移除空格",
+  "autoHeaderNumber": "标题自动编号",
+  "enableAutoHeaderNumber": "启用标题自动编号",
+  "disableAutoHeaderNumber": "禁用标题自动编号"
 }
